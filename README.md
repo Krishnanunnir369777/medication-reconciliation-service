@@ -50,3 +50,57 @@ flowchart LR
         D --> S[Snapshots]
         D --> C2[Conflicts]
     end
+```
+## Data Flow
+
+```mermaid
+flowchart TD
+    A[POST /ingest] --> B[Normalize Data]
+    B --> C[Store Snapshot]
+    C --> D[Detect Conflicts]
+    D --> E[Store Conflicts]
+
+    E --> F[GET /clinic/conflicts]
+    E --> G[GET /reports]
+
+    H[POST /resolve] --> I[Update Conflict]
+```
+
+## Conflict Detection Logic
+
+```mermaid
+flowchart TD
+    A[Incoming Medications] --> B[Normalize]
+    B --> C[Compare with Existing Data]
+
+    C --> D{Conflict Type}
+    D -->|Dose mismatch| E[Create Conflict]
+    D -->|Status conflict| E
+    D -->|Class conflict| E
+
+    E --> F[Save to DB]
+```
+
+## ⚙️ Features
+
+# 1. Ingestion API
+Stores medication snapshots
+Maintains version history
+Triggers conflict detection
+
+# 2.Conflict Detection
+Detects:
+Dose mismatch
+Status conflict
+Missing medications
+Drug class conflicts
+
+# 3.Reporting APIs
+/clinic/{clinic}/conflicts
+/reports/last-30-days
+
+# 4.Conflict Resolution
+Stores:
+Resolution reason
+Timestamp
+Resolved status
