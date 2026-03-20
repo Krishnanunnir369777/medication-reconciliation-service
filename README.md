@@ -104,3 +104,9 @@ Stores:
 Resolution reason
 Timestamp
 Resolved status
+
+# Swagger UI
+![Swagger UI](screenshots/swagger.png)
+
+# MongoDB Collections
+![MongoDB](screenshots/mongodb.png)
