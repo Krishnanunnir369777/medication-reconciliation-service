@@ -50,3 +50,33 @@ flowchart LR
         D --> S[Snapshots]
         D --> C2[Conflicts]
     end
+```
+## Data Flow
+
+```mermaid
+flowchart TD
+    A[POST /ingest] --> B[Normalize Data]
+    B --> C[Store Snapshot]
+    C --> D[Detect Conflicts]
+    D --> E[Store Conflicts]
+
+    E --> F[GET /clinic/conflicts]
+    E --> G[GET /reports]
+
+    H[POST /resolve] --> I[Update Conflict]
+```
+
+## Conflict Detection Logic
+
+```mermaid
+flowchart TD
+    A[Incoming Medications] --> B[Normalize]
+    B --> C[Compare with Existing Data]
+
+    C --> D{Conflict Type}
+    D -->|Dose mismatch| E[Create Conflict]
+    D -->|Status conflict| E
+    D -->|Class conflict| E
+
+    E --> F[Save to DB]
+```
