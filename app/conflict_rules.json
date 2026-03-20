@@ -1,0 +1,9 @@
+{
+  "drug_classes": {
+    "nsaids": ["ibuprofen"],
+    "anticoagulants": ["warfarin"]
+  },
+  "class_conflicts": [
+    ["nsaids", "anticoagulants"]
+  ]
+}

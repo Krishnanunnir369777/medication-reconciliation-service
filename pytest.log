@@ -1,0 +1,213 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.1, pytest-8.1.1, pluggy-1.6.0 -- E:\Projects\Jano_assignment\venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: E:\Projects\Jano_assignment
+plugins: anyio-4.12.1, asyncio-0.23.5
+asyncio: mode=Mode.STRICT
+collecting ... collected 6 items
+
+tests/test_main.py::test_ingest_no_conflicts FAILED                      [ 16%]
+tests/test_main.py::test_ingest_dose_mismatch FAILED                     [ 33%]
+tests/test_main.py::test_class_conflict FAILED                           [ 50%]
+tests/test_main.py::test_get_unresolved_conflicts FAILED                 [ 66%]
+tests/test_main.py::test_get_conflict_counts FAILED                      [ 83%]
+tests/test_main.py::test_resolve_conflict FAILED                         [100%]
+
+================================== FAILURES ===================================
+__________________________ test_ingest_no_conflicts ___________________________
+
+override_get_db = None
+test_db = <async_generator object test_db at 0x000001E8C03F39F0>
+
+    @pytest.mark.asyncio
+    async def test_ingest_no_conflicts(override_get_db, test_db):
+        payload = {
+            "patient_id": "test_1",
+            "source": "patient_reported",
+            "medications": [
+                {"name": "acetaminophen", "dose": 500, "unit": "mg", "status": "active"}
+            ]
+        }
+    
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+>           response = await ac.post("/api/v1/patients/test_1/medications", json=payload)
+
+tests\test_main.py:17: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+venv\Lib\site-packages\httpx\_client.py:1892: in post
+    return await self.request(
+venv\Lib\site-packages\httpx\_client.py:1574: in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+venv\Lib\site-packages\httpx\_client.py:1661: in send
+    response = await self._send_handling_auth(
+venv\Lib\site-packages\httpx\_client.py:1689: in _send_handling_auth
+    response = await self._send_handling_redirects(
+venv\Lib\site-packages\httpx\_client.py:1726: in _send_handling_redirects
+    response = await self._send_single_request(request)
+venv\Lib\site-packages\httpx\_client.py:1763: in _send_single_request
+    response = await transport.handle_async_request(request)
+venv\Lib\site-packages\httpx\_transports\asgi.py:164: in handle_async_request
+    await self.app(scope, receive, send)
+venv\Lib\site-packages\fastapi\applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+venv\Lib\site-packages\starlette\applications.py:123: in __call__
+    await self.middleware_stack(scope, receive, send)
+venv\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+venv\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+venv\Lib\site-packages\starlette\middleware\exceptions.py:62: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+venv\Lib\site-packages\starlette\_exception_handler.py:64: in wrapped_app
+    raise exc
+venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+venv\Lib\site-packages\starlette\routing.py:758: in __call__
+    await self.middleware_stack(scope, receive, send)
+venv\Lib\site-packages\starlette\routing.py:778: in app
+    await route.handle(scope, receive, send)
+venv\Lib\site-packages\starlette\routing.py:299: in handle
+    await self.app(scope, receive, send)
+venv\Lib\site-packages\starlette\routing.py:79: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+venv\Lib\site-packages\starlette\_exception_handler.py:64: in wrapped_app
+    raise exc
+venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+venv\Lib\site-packages\starlette\routing.py:74: in app
+    response = await func(request)
+venv\Lib\site-packages\fastapi\routing.py:278: in app
+    raw_response = await run_endpoint_function(
+venv\Lib\site-packages\fastapi\routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+patient_id = 'test_1'
+payload = MedicationListPayload(patient_id='test_1', source='patient_reported', medications=[MedicationItem(name='acetaminophen', dose=500.0, unit='mg', form=None, status='active')])
+db = <async_generator object test_db at 0x000001E8C03F39F0>
+
+    @app.post("/api/v1/patients/{patient_id}/medications")
+    async def ingest_medications(
+        patient_id: str,
+        payload: MedicationListPayload,
+        db: AsyncIOMotorDatabase = Depends(get_db)
+    ):
+        # Ensure patient exists
+>       patient_dict = await db["patients"].find_one({"_id": patient_id})
+E       TypeError: 'async_generator' object is not subscriptable
+
+app\main.py:27: TypeError
+__________________________ test_ingest_dose_mismatch __________________________
+
+override_get_db = None
+test_db = <async_generator object test_db at 0x000001E8C03F39F0>
+
+    @pytest.mark.asyncio
+    async def test_ingest_dose_mismatch(override_get_db, test_db):
+>       await test_db["patients"].insert_one({
+            "_id": "test_2",
+            "name": "Patient 2",
+            "dob": "1990-01-01",
+            "clinic_id": "clinic_a",
+            "current_medications": [{"name": "lisinopril", "dose": 10.0, "unit": "mg", "status": "active"}]
+        })
+E       TypeError: 'async_generator' object is not subscriptable
+
+tests\test_main.py:24: TypeError
+_____________________________ test_class_conflict _____________________________
+
+override_get_db = None
+test_db = <async_generator object test_db at 0x000001E8C03F39F0>
+
+    @pytest.mark.asyncio
+    async def test_class_conflict(override_get_db, test_db):
+>       await test_db["patients"].insert_one({
+            "_id": "test_3",
+            "name": "Patient 3",
+            "dob": "1990-01-01",
+            "clinic_id": "clinic_a",
+            "current_medications": [{"name": "lisinopril", "dose": 10.0, "unit": "mg", "status": "active"}]
+        })
+E       TypeError: 'async_generator' object is not subscriptable
+
+tests\test_main.py:51: TypeError
+________________________ test_get_unresolved_conflicts ________________________
+
+override_get_db = None
+test_db = <async_generator object test_db at 0x000001E8C03F39F0>
+
+    @pytest.mark.asyncio
+    async def test_get_unresolved_conflicts(override_get_db, test_db):
+>       await test_db["patients"].insert_one({"_id": "pat_1", "name": "Pat1", "dob": "2000-01-01", "clinic_id": "clinic_a", "current_medications": []})
+E       TypeError: 'async_generator' object is not subscriptable
+
+tests\test_main.py:78: TypeError
+__________________________ test_get_conflict_counts ___________________________
+
+override_get_db = None
+test_db = <async_generator object test_db at 0x000001E8C03F39F0>
+
+    @pytest.mark.asyncio
+    async def test_get_conflict_counts(override_get_db, test_db):
+        # Two patients in clinic_b, each with >= 2 conflicts (within 30 days)
+>       await test_db["patients"].insert_one({"_id": "pat_b1", "name": "B1", "dob": "2K", "clinic_id": "clinic_b", "current_medications": []})
+E       TypeError: 'async_generator' object is not subscriptable
+
+tests\test_main.py:97: TypeError
+____________________________ test_resolve_conflict ____________________________
+
+override_get_db = None
+test_db = <async_generator object test_db at 0x000001E8C03F39F0>
+
+    @pytest.mark.asyncio
+    async def test_resolve_conflict(override_get_db, test_db):
+>       await test_db["conflicts"].insert_one({
+            "_id": "conflict_123",
+            "patient_id": "pat_1",
+            "status": "unresolved",
+        })
+E       TypeError: 'async_generator' object is not subscriptable
+
+tests\test_main.py:121: TypeError
+============================== warnings summary ===============================
+app\main.py:16
+  E:\Projects\Jano_assignment\app\main.py:16: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+venv\Lib\site-packages\fastapi\applications.py:4495
+  E:\Projects\Jano_assignment\venv\Lib\site-packages\fastapi\applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+tests/test_main.py::test_ingest_no_conflicts
+  E:\Projects\Jano_assignment\venv\Lib\site-packages\pytest_asyncio\plugin.py:769: DeprecationWarning: The event_loop fixture provided by pytest-asyncio has been redefined in
+  E:\Projects\Jano_assignment\tests\conftest.py:7
+  Replacing the event_loop fixture with a custom implementation is deprecated
+  and will lead to errors in the future.
+  If you want to request an asyncio event loop with a scope other than function
+  scope, use the "scope" argument to the asyncio mark when marking the tests.
+  If you want to return different types of event loops, use the event_loop_policy
+  fixture.
+  
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_main.py::test_ingest_no_conflicts - TypeError: 'async_gener...
+FAILED tests/test_main.py::test_ingest_dose_mismatch - TypeError: 'async_gene...
+FAILED tests/test_main.py::test_class_conflict - TypeError: 'async_generator'...
+FAILED tests/test_main.py::test_get_unresolved_conflicts - TypeError: 'async_...
+FAILED tests/test_main.py::test_get_conflict_counts - TypeError: 'async_gener...
+FAILED tests/test_main.py::test_resolve_conflict - TypeError: 'async_generato...
+======================== 6 failed, 3 warnings in 0.46s ========================
+sys:1: RuntimeWarning: coroutine 'clear_db' was never awaited
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
