@@ -54,22 +54,24 @@ Client → FastAPI → Services (Business Logic) → MongoDB
 
 ---
 
-## 📂 Project Structure
+## 🏗️ System Architecture
 
-app/
-├── main.py # API routes
-├── services.py # Business logic
-├── models.py # Data models
-├── db.py # MongoDB connection
-├── conflict_rules.json # Rule engine
+```mermaid
+flowchart LR
+    A[Client / Swagger UI] --> B[FastAPI Server]
+    B --> C[Service Layer]
+    C --> D[MongoDB]
 
-seed/
-└── seed_data.py # Synthetic dataset generator
+    subgraph Backend
+        B -->|Calls| C
+        C -->|Stores Data| D
+    end
 
-tests/
-├── test_conflicts.py
-├── test_validation.py
-└── test_reports.py
+    subgraph Database
+        D --> P[Patients]
+        D --> S[Snapshots]
+        D --> C2[Conflicts]
+    end
 
 requirements.txt
 README.md
