@@ -52,3 +52,19 @@ class ResolutionPayload(BaseModel):
     resolved_by: str
     resolution_reason: str
     chosen_source: str
+
+class Medication(BaseModel):
+    name: str
+    dose: float
+    unit: str
+    frequency: str
+    status: str  # active / stopped
+
+class IngestRequest(BaseModel):
+    patient_id: str
+    source: str
+    medications: List[Medication]
+
+class ResolveRequest(BaseModel):
+    reason: str
+    resolved_by: str

@@ -2,24 +2,33 @@ from fastapi import FastAPI, HTTPException
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 from pydantic import BaseModel
+from dotenv import load_dotenv
+import os
 import uuid
 import json
 
-app = FastAPI()
+# -----------------------------
+# LOAD ENV
+# -----------------------------
+load_dotenv()
 
-# MongoDB connection
-from pymongo import MongoClient
+MONGO_URI = os.getenv("MONGO_URI")
 
-client = MongoClient("mongodb+srv://krishnanunnir503_db_user:4kwX28sdKlTgO15z@cluster0.3mxzzer.mongodb.net/")
+if not MONGO_URI:
+    raise Exception("MONGO_URI not found in .env")
+
+client = MongoClient(MONGO_URI)
 db = client["medsync"]
 
 patients_col = db["patients"]
 snapshots_col = db["snapshots"]
 conflicts_col = db["conflicts"]
 
-# Load rules
-import os
+app = FastAPI(title="Medication Reconciliation Service")
 
+# -----------------------------
+# LOAD RULES
+# -----------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 with open(os.path.join(BASE_DIR, "conflict_rules.json")) as f:
@@ -40,6 +49,10 @@ class IngestRequest(BaseModel):
     source: str
     medications: list[Medication]
 
+class ResolveRequest(BaseModel):
+    reason: str
+    resolved_by: str
+
 # -----------------------------
 # HELPERS
 # -----------------------------
@@ -49,7 +62,7 @@ def normalize(med):
         "dose": med.dose,
         "unit": med.unit.lower().strip(),
         "frequency": med.frequency.lower().strip(),
-        "status": med.status.lower()
+        "status": med.status.lower().strip()
     }
 
 def get_drug_class(name):
@@ -66,6 +79,7 @@ def detect_conflicts(patient_id):
     if len(snapshots) < 2:
         return []
 
+    # Get latest snapshot per source
     latest_by_source = {}
     for s in snapshots:
         src = s["source"]
@@ -91,7 +105,9 @@ def detect_conflicts(patient_id):
     for drug, source_data in drug_map.items():
         present_sources = list(source_data.keys())
 
-        # Dose mismatch
+        # -----------------------------
+        # 1. DOSE MISMATCH
+        # -----------------------------
         if len(present_sources) > 1:
             doses = set((m["dose"], m["unit"]) for m in source_data.values())
             if len(doses) > 1:
@@ -103,10 +119,14 @@ def detect_conflicts(patient_id):
                     "medications": [drug],
                     "sources": present_sources,
                     "resolved": False,
+                    "resolution_reason": None,
+                    "resolved_at": None,
                     "created_at": datetime.utcnow()
                 })
 
-        # Missing in source
+        # -----------------------------
+        # 2. MISSING IN SOURCE
+        # -----------------------------
         if len(present_sources) < len(sources):
             conflicts.append({
                 "_id": str(uuid.uuid4()),
@@ -116,24 +136,32 @@ def detect_conflicts(patient_id):
                 "medications": [drug],
                 "sources": sources,
                 "resolved": False,
+                "resolution_reason": None,
+                "resolved_at": None,
                 "created_at": datetime.utcnow()
             })
 
-        # Stopped conflict
+        # -----------------------------
+        # 3. STOPPED VS ACTIVE
+        # -----------------------------
         statuses = [m["status"] for m in source_data.values()]
         if "stopped" in statuses and "active" in statuses:
             conflicts.append({
                 "_id": str(uuid.uuid4()),
                 "patient_id": patient_id,
                 "type": "stopped_in_source",
-                "description": f"{drug} stopped in one source, active in another",
+                "description": f"{drug} stopped in one source but active in another",
                 "medications": [drug],
                 "sources": present_sources,
                 "resolved": False,
+                "resolution_reason": None,
+                "resolved_at": None,
                 "created_at": datetime.utcnow()
             })
 
-    # Class conflict
+    # -----------------------------
+    # 4. CLASS CONFLICT
+    # -----------------------------
     for source, meds in meds_by_source.items():
         classes = [(m["name"], get_drug_class(m["name"])) for m in meds]
         classes = [c for c in classes if c[1]]
@@ -151,6 +179,8 @@ def detect_conflicts(patient_id):
                     "medications": [has_a[0][0], has_b[0][0]],
                     "sources": [source],
                     "resolved": False,
+                    "resolution_reason": None,
+                    "resolved_at": None,
                     "created_at": datetime.utcnow()
                 })
 
@@ -163,13 +193,21 @@ def detect_conflicts(patient_id):
 # ✅ INGEST
 @app.post("/ingest")
 def ingest(data: IngestRequest):
+
+    # Validate source
+    if data.source not in ["clinic_emr", "hospital_discharge", "patient_reported"]:
+        raise HTTPException(400, "Invalid source")
+
     if not patients_col.find_one({"_id": data.patient_id}):
         raise HTTPException(404, "Patient not found")
 
-    version = snapshots_col.count_documents({
-        "patient_id": data.patient_id,
-        "source": data.source
-    }) + 1
+    # Proper versioning
+    last = snapshots_col.find_one(
+        {"patient_id": data.patient_id, "source": data.source},
+        sort=[("version", -1)]
+    )
+
+    version = 1 if not last else last["version"] + 1
 
     snapshot = {
         "_id": str(uuid.uuid4()),
@@ -182,16 +220,31 @@ def ingest(data: IngestRequest):
 
     snapshots_col.insert_one(snapshot)
 
+    # Detect conflicts
     new_conflicts = detect_conflicts(data.patient_id)
-    if new_conflicts:
-        conflicts_col.insert_many(new_conflicts)
 
-    return {"message": "Data ingested", "conflicts_found": len(new_conflicts)}
+    # Deduplicate conflicts
+    for c in new_conflicts:
+        exists = conflicts_col.find_one({
+            "patient_id": c["patient_id"],
+            "type": c["type"],
+            "description": c["description"],
+            "resolved": False
+        })
+        if not exists:
+            conflicts_col.insert_one(c)
+
+    return {
+        "message": "Data ingested",
+        "version": version,
+        "conflicts_found": len(new_conflicts)
+    }
 
 # ✅ REPORT 1
 @app.get("/clinic/{clinic}/conflicts")
 def get_conflicts(clinic: str):
-    patients = patients_col.find({"clinic": clinic})
+
+    patients = list(patients_col.find({"clinic": clinic}))
     patient_ids = [p["_id"] for p in patients]
 
     conflicts = list(conflicts_col.find({
@@ -204,6 +257,7 @@ def get_conflicts(clinic: str):
 # ✅ REPORT 2
 @app.get("/reports/last-30-days")
 def report():
+
     last_30_days = datetime.utcnow() - timedelta(days=30)
 
     pipeline = [
@@ -212,18 +266,20 @@ def report():
         {"$match": {"count": {"$gte": 2}}}
     ]
 
-    result = list(conflicts_col.aggregate(pipeline))
-    return result
+    return list(conflicts_col.aggregate(pipeline))
 
 # ✅ RESOLVE CONFLICT
 @app.post("/resolve/{conflict_id}")
-def resolve(conflict_id: str, reason: str):
+def resolve(conflict_id: str, data: ResolveRequest):
+
     conflicts_col.update_one(
         {"_id": conflict_id},
         {"$set": {
             "resolved": True,
-            "resolution_reason": reason,
+            "resolution_reason": data.reason,
+            "resolved_by": data.resolved_by,
             "resolved_at": datetime.utcnow()
         }}
     )
+
     return {"message": "Conflict resolved"}

@@ -4,6 +4,9 @@
     "anticoagulants": ["warfarin"]
   },
   "class_conflicts": [
-    ["nsaids", "anticoagulants"]
+    {
+      "classes": ["nsaids", "anticoagulants"],
+      "description": "NSAIDs increase bleeding risk with anticoagulants"
+    }
   ]
 }
