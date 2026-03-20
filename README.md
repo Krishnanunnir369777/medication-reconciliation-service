@@ -20,37 +20,15 @@ The system supports:
 
 ## 🧠 Problem Understanding
 
-In real-world healthcare systems, medication data often comes from multiple sources and may conflict due to:
-- Different dosages
-- Inconsistent statuses (active vs stopped)
+Healthcare systems often maintain inconsistent medication lists across multiple sources. This leads to:
+- Incorrect dosages
+- Conflicting medication status
 - Dangerous drug combinations
 
-This system aims to:
-✔ Consolidate data  
-✔ Detect inconsistencies  
-✔ Provide actionable insights  
-
----
-
-## 🏗️ Architecture Overview
-
-Client → FastAPI → Services (Business Logic) → MongoDB
-
-
-### Components:
-
-- **FastAPI (`main.py`)**
-  - Handles API requests
-  - Input validation using Pydantic
-  - Calls service layer
-
-- **Service Layer (`services.py`)**
-  - Normalization logic
-  - Conflict detection engine
-  - Rule-based validation
-
-- **Database (MongoDB Atlas)**
-  - Stores patients, snapshots, conflicts
+This system:
+✔ Consolidates multiple sources  
+✔ Detects inconsistencies  
+✔ Enables clinical decision support  
 
 ---
 
@@ -72,9 +50,3 @@ flowchart LR
         D --> S[Snapshots]
         D --> C2[Conflicts]
     end
-
-requirements.txt
-README.md
-
-
----
