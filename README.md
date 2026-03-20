@@ -80,3 +80,27 @@ flowchart TD
 
     E --> F[Save to DB]
 ```
+
+## ⚙️ Features
+
+# 1. Ingestion API
+Stores medication snapshots
+Maintains version history
+Triggers conflict detection
+
+# 2.Conflict Detection
+Detects:
+Dose mismatch
+Status conflict
+Missing medications
+Drug class conflicts
+
+# 3.Reporting APIs
+/clinic/{clinic}/conflicts
+/reports/last-30-days
+
+# 4.Conflict Resolution
+Stores:
+Resolution reason
+Timestamp
+Resolved status
