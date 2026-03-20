@@ -83,24 +83,74 @@ flowchart TD
 
 ## ⚙️ Features
 
-# 1. Ingestion API
+## 1. Ingestion API
 Stores medication snapshots
 Maintains version history
 Triggers conflict detection
 
-# 2.Conflict Detection
+## 2.Conflict Detection
 Detects:
 Dose mismatch
 Status conflict
 Missing medications
 Drug class conflicts
 
-# 3.Reporting APIs
+## 3.Reporting APIs
 /clinic/{clinic}/conflicts
 /reports/last-30-days
 
-# 4.Conflict Resolution
+## 4.Conflict Resolution
 Stores:
 Resolution reason
 Timestamp
 Resolved status
+
+# Swagger UI
+![Swagger UI](screenshots/swagger.png)
+
+# MongoDB Collections
+![MongoDB](screenshots/mongodb.png)
+
+
+## ⚖️ Assumptions:
+- No single source is considered ground truth
+- All sources treated equally
+- Conflict resolution is manual
+
+## 🔄 Versioning Strategy:
+- Each ingest creates a new snapshot
+- No overwrite
+- Full history maintained
+
+## ⚖️ Trade-offs:
+- Denormalization vs References
+- Used separate collections for scalability
+
+Pros:
+- ✔ Flexible
+- ✔ Scalable
+  
+Cons:
+- ❌ Requires joins
+
+## Extensibility:
+- Rule-based system
+- Easy to extend
+
+## ⚠️ Known Limitations
+- No real drug database
+- No authentication
+- Basic validation
+- Aggregation not fully clinic-grouped
+
+## 🔮 Future Improvements
+- Add UI dashboard
+- Integrate drug database
+- Add authentication
+- Improve reporting
+
+## 🤖 AI Usage
+Used for:
+- Boilerplate generation
+- Debugging
+- Structuring APIs
