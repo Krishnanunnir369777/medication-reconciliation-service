@@ -106,10 +106,16 @@ Timestamp
 Resolved status
 
 # Swagger UI
-![Swagger UI](screenshots/swagger.png)
-
+![Swagger UI](screenshots/swagger.png) 
+## Ingest
+![Ingest UI](screenshots/ingest.png)
+# Conflicts
+![Conflicts](screenshots/conflicts.png)
 # MongoDB Collections
 ![MongoDB](screenshots/mongodb.png)
+# Resolve
+![Resolve](screenshots/resolve.png)
+![Resolve](screenshots/resolved_1.png)
 
 
 ## ⚖️ Assumptions:
