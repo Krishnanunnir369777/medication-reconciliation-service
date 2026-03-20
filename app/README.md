@@ -81,7 +81,7 @@ README.md
 
 ### 1. Patients Collection
 
-```json
+``json
 {
   "_id": "p1",
   "name": "John Doe",
